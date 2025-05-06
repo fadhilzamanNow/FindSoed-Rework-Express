@@ -8,13 +8,20 @@
   "main": "src/index.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev" : "nodemon src/index.ts"
+    "dev": "nodemon src/index.ts"
   },
   "dependencies": {
+    "@prisma/client": "^6.7.0",
+    "@prisma/migrate": "^6.6.0",
     "@types/express": "^5.0.1",
+    "@types/jsonwebtoken": "^9.0.9",
     "@types/node": "^22.14.1",
+    "bcrypt": "^5.1.1",
+    "bcryptjs": "^3.0.2",
     "express": "^5.1.0",
+    "jsonwebtoken": "^9.0.2",
     "nodemon": "^3.1.9",
+    "prisma": "^6.6.0",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   }
