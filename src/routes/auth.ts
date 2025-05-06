@@ -1,8 +1,10 @@
 import express ,{ Request, Response } from "express";
 import { PrismaClient } from '../../generated/prisma/client'
 import jwt from "jsonwebtoken";
+import "dotenv/config"
 const router = express.Router()
 const prisma = new PrismaClient()
+
 
 router.use(express.json())
 
@@ -39,6 +41,8 @@ router.post("/register", async (req : Request, res : Response) => {
     const findEmail = await prisma.user.findUnique({where : {
         email : email
     }})
+
+
 
     if(findEmail){
         res.status(400).json({
@@ -101,8 +105,7 @@ router.post("/login",async (req: Request, res : Response) => {
         })
     }else{
        if(findEmail.password === password){
-            const token = jwt.sign({userId : findEmail.id},'this-secret-class', {expiresIn : '1h'}) 
-
+            const token = jwt.sign({userId : findEmail.id},process.env.JWT_SECRET as string, {expiresIn : '30m'}) 
             res.status(200).json({
                 success : true,
                 message : "Selamat anda telah berhasil log in",
@@ -116,5 +119,7 @@ router.post("/login",async (req: Request, res : Response) => {
        }
     }
 })
+
+
 
 export {router as authRouter}
