@@ -4,6 +4,7 @@ import "dotenv/config"
 import { PrismaClient } from "../../generated/prisma";
 import multer from "multer";
 import path from "path";
+import { timeStamp } from "console";
 
 const router = express.Router();
 const prisma = new PrismaClient()
@@ -39,7 +40,7 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.post("/create", verifyToken, upload.array("postImage",5) , async (req : Request, res : Response) => {
-    const {itemName = null, itemDetail = null, imagePost = null, itemCategory = null, itemStatus = null} = req.body
+    const {itemName = null, itemDetail = null, itemCategory = null, itemStatus = null} = req.body
     try{
         const statusId = await prisma.postStatus.findUnique({
             where : {
@@ -52,8 +53,27 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
                 categoryName : itemCategory
             }
         })
-        console.log("status : ", statusId, " category : ", categoryId)
+        let imageArray = []
+        if(req.files && (req.files.length as number) > 0){
+            console.log("Gambar berhasil diupload : ", req.files.length )
+            imageArray = (req.files as Express.Multer.File[]).map((v,i) => {
+                return {
+                    postImageUrl : v.filename
+                }
+            })
+        }else{
+            throw new Error("Mohon Masukkan Gambar")
+        }
+        
         if(statusId && categoryId){
+            console.log({
+                itemName,
+                itemDetail,
+                //@ts-ignore
+                userId : req.userId,
+                categoryId : categoryId.id,
+                statusId : statusId.id
+            })
             const posts = await prisma.post.create({
                 data : {
                     itemName : itemName,
@@ -61,7 +81,10 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
                     //@ts-ignore
                     userId : req.userId,
                     categoryId : categoryId.id,
-                    statusId : statusId.id
+                    statusId : statusId.id,
+                    image : {
+                        create : imageArray
+                    }
                 }
             })
             res.status(200).json({
@@ -74,29 +97,107 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
                 message : `${!statusId ? "Status" : ""}${(!statusId && !categoryId) ? " dan " : ""}${!categoryId ? "Kategori" : ""} tidak tersedia`
             })
         }
-
     }catch(err){
-        console.log("error")
+        console.log("error :", err)
         res.status(400).json({
             success : false,
             message : err
         })
     }
-    
-  
-    
-
 })
 
-router.patch("/edit", verifyToken, async (req : Request, res : Response) => {
-    
+router.put("/edit/:id", verifyToken, async (req : Request, res : Response) => {
+    console.log("test : ", req.params.id)
+    const {itemName = null, itemCategory = null, itemStatus = null, itemDetail = null} = req.body
+    const oldPost = await prisma.post.findUnique({
+        where : {
+            id : req.params.id
+        }
+    })
+    let statusId ;
+    let categoryId ;
+    if(itemStatus){
+         statusId = await prisma.postStatus.findUnique({
+            where : {
+                statusName : itemStatus
+            }
+        })
+    }
+    if(itemDetail){
+         categoryId = await prisma.postCategory.findUnique({
+            where : {
+                categoryName : itemCategory
+            }
+        })
+    }
+ 
+
+    if(oldPost){
+        const newPost = await prisma.post.update({
+            where : {
+                id : req.params.id
+            },
+            data : {
+                id : req.params.id,
+                itemName : itemName ? itemName : oldPost.itemName,
+                itemDetail : itemDetail ? itemDetail : oldPost.itemDetail,
+                statusId : itemStatus ? statusId?.id : oldPost.statusId,
+                categoryId : itemStatus ? categoryId?.id : oldPost.categoryId,
+                updated_at : new Date(),
+                created_at : oldPost.created_at
+            }
+        })
+        res.status(200).json({
+            success : true,
+            message : newPost
+        })
+    }else{
+        res.status(404).json({
+            status : false,
+            message : "Post yang ingin diedit tidak ditemukan"
+        })
+    }
+   
 })
 
 router.get("/", verifyToken, async (req : Request, res : Response) => {
-    const posts = await prisma.post.findMany();
+    const posts = await prisma.post.findMany({
+        select : {
+            id : true,
+            status : {
+                select : {
+                    statusName : true
+                }
+            },
+            category : {
+                select : {
+                    categoryName : true
+                }
+            },
+            created_at : true,
+            updated_at : true,
+            itemDetail : true,
+            itemName : true,
+            image : true
+        }
+    });
+
+    const formattedPosts = posts.map((v) => {
+        return {
+            id : v.id,
+            itemName : v.itemName,
+            itemDetail : v.itemDetail,
+            statusName : v.status.statusName,
+            categoryName : v.category.categoryName,
+            images : v.image,
+            created_at : v.created_at,
+            updated_at : v.updated_at
+
+        }
+    })
     res.status(200).json({
         success : true,
-        data : posts
+        data : formattedPosts
     })
 })
 
