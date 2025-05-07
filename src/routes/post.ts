@@ -40,8 +40,11 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.post("/create", verifyToken, upload.array("postImage",5) , async (req : Request, res : Response) => {
-    const {itemName = null, itemDetail = null, itemCategory = null, itemStatus = null} = req.body
+    const {itemName = null, itemDetail = null, itemCategory = null, itemStatus = null, itemLatitude = null, itemLongitude = null} = req.body
     try{
+        if(!itemName || !itemDetail || !itemCategory || !itemStatus || !itemLatitude || !itemLongitude ){
+            throw new Error("Data yang kamu masukkan kurang lengkap")
+        }
         const statusId = await prisma.postStatus.findUnique({
             where : {
                 statusName : itemStatus
@@ -84,6 +87,12 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
                     statusId : statusId.id,
                     image : {
                         create : imageArray
+                    },
+                    coordinate : {
+                        create : {
+                            latitude : Number((itemLatitude as string)),
+                            longitude : Number((itemLongitude as string))
+                        }
                     }
                 }
             })
@@ -178,7 +187,12 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
             updated_at : true,
             itemDetail : true,
             itemName : true,
-            image : true
+            image :  {
+                select : {
+                    postImageUrl : true
+                }
+            },
+            coordinate : true
         }
     });
 
@@ -191,7 +205,11 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
             categoryName : v.category.categoryName,
             images : v.image,
             created_at : v.created_at,
-            updated_at : v.updated_at
+            updated_at : v.updated_at,
+            coordinate : {
+                latitude : v.coordinate?.latitude,
+                longitude : v.coordinate?.longitude
+            }
 
         }
     })
@@ -200,6 +218,23 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
         data : formattedPosts
     })
 })
+
+router.delete("/:id", verifyToken, async (req : Request, res : Response) => {
+    if(req.params.id){
+        try{
+            await prisma.post.delete({where : {
+                id : req.params.id
+            }})
+        }catch(err){
+            res.status(400).json({
+                success : true,
+                message : err
+            })
+        }
+    }
+})
+
+
 
 export {router as postRouter }
 
