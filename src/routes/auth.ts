@@ -91,13 +91,11 @@ router.post("/login",async (req: Request, res : Response) => {
             message : "Password tidak disertakan"
         })
     }
-
     const findEmail = await prisma.user.findUnique({
         where : {
             email : email
         }
     })
-
     if(!findEmail){
         res.status(404).json({
             success : false,

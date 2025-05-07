@@ -4,6 +4,7 @@ import bcrypt from "bcryptjs"
 import multer from "multer";
 import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/post";
+import { commentRouter } from "./routes/comment";
 const app = express();
 const port = 3500;
 
@@ -14,12 +15,12 @@ app.use(express.json())
 app.use(express.urlencoded({extended : true}))
 
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-      cb(null, 'uploads/'); // Destination folder
+    destination: (_, __, cb) => {
+      cb(null, 'uploads/'); 
     },
-    filename: (req, file, cb) => {
+    filename: (_, file, cb) => {
       const ext = path.extname(file.originalname);
-      cb(null, Date.now() + ext); // Filename with timestamp
+      cb(null, Date.now() + ext); 
     },
   });
 
@@ -34,6 +35,7 @@ app.listen(port, () => {
 })
 app.use("/auth", authRouter)
 app.use("/post", postRouter)
+app.use("/comment", commentRouter)
 
 app.use("/static",express.static(path.join(__dirname,"public")));
 

@@ -16,7 +16,11 @@ const verifyToken = (req : Request, res : Response, next : NextFunction) => {
             req.userId = decoded.userId
             next()
     }
+    else{
+        throw new Error("Token is invalid")
+    }
     }catch(err){
+        console.log("err :", err)
         res.status(401).json({
             success : false,
             message : err
@@ -26,7 +30,13 @@ const verifyToken = (req : Request, res : Response, next : NextFunction) => {
 
 router.get("/", verifyToken, async (req : Request, res : Response) => {
     try{
-        const comment = await prisma.comments.findMany();
+        const comment = await prisma.comments.findMany({
+            select : {
+                id : true,
+                message : true,
+                created_at : true,
+            }
+        });
 
         res.status(200).json({
             success : true,
@@ -40,22 +50,32 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
     }
 })
 
-router.post("/:id", verifyToken, async ( req : Request, res : Response) => {
+router.post("/create/:id", verifyToken, async ( req : Request, res : Response) => {
     try{
         const {message = null} = req.body
         if(message && req.params.id){
+            //@ts-ignore
+            console.log("userId : ", req.userId)
+            console.log("params :", req.params.id)
             const comments = await prisma.comments.create({
                 data : {
-                    message : message as string,
+                    message : message,
                     postId : req.params.id,
                     //@ts-ignore
                     userId : req.userId
                 }
             })
+            res.status(200).json({
+                success : true,
+                message : comments
+            })
         }else{
             throw new Error("Comment belum dimasukkan")
         }
+
+    
     }catch(err){
+        console.log("err : ", err)
         res.status(400).json({
             success : false,
             message :err 
@@ -63,25 +83,23 @@ router.post("/:id", verifyToken, async ( req : Request, res : Response) => {
     }
 })
 
-
-router.patch("/:id", verifyToken, async (req :Request, res: Response) => {
+router.patch("/edit/:id", verifyToken, async (req :Request, res: Response) => {
     try{
         const {message = null} = req.body
-
-
         if(message && req.params.id ){
                 const newComments = await prisma.comments.update({
                     where : {
                         //@ts-ignore
-                        id : req.params.id
+                        id : req.params.id.trim()
                     },
                     data : {
-                        message : message
+                        message : message,
+                        updated_at : new Date()
                     }
                 })
                 res.status(201).json({
                     success : true,
-                    message : newComments
+                    message : newComments,
                 })
         }
     }catch(err){
@@ -92,19 +110,22 @@ router.patch("/:id", verifyToken, async (req :Request, res: Response) => {
     }
 })
 
-router.delete("/:id", verifyToken, async (req : Request, res : Response) => {
+
+router.delete("/delete/:id", verifyToken, async (req : Request, res : Response) => {
+ 
     try{
         const comments = await prisma.comments.delete({
             where : {
                 //@ts-ignore
-                id : req.params.id
+                id : req.params.id.trim()
             },
         })
-        res.status(20).json({
+        res.status(200).json({
             success : true,
-            message : "Komen berhasil di delete "
+            message : `Komen dengan id : ${comments.id} berhasil dihapus`
         })
     }catch(err){
+        console.log("error : ", err)
         res.status(400).json({
             success : false,
             message : err
@@ -112,3 +133,4 @@ router.delete("/:id", verifyToken, async (req : Request, res : Response) => {
     }
 })
 
+export {router as commentRouter};
