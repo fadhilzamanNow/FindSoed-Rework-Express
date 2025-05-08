@@ -8,10 +8,20 @@ const prisma = new PrismaClient()
 
 router.use(express.json())
 
+
 router.get("/", (req : Request, res : Response) => {
     res.send("ENTERING AUTH")
 })
 
+/**
+ * @swagger
+ * /register:
+ *   get:
+ *     description: REGISTER
+ *     responses:
+ *       200:
+ *         description: Returns a mysterious string.
+ */
 router.post("/register", async (req : Request, res : Response) => {
 
     const {username = null, email = null, password = null, phoneNumber = null } = req.body

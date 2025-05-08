@@ -1,16 +1,19 @@
 import express ,{ Request, Response } from "express";
 import path from "path";
-import bcrypt from "bcryptjs"
 import multer from "multer";
+import swaggerUI from "swagger-ui-express"
+import YAML from "yamljs"
 import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/post";
 import { commentRouter } from "./routes/comment";
+
 const app = express();
 const port = 3500;
-
-
-/* const prisma = new PrismaClient()
- */
+const OASSpec = YAML.load(path.join(__dirname,"openapi.yaml"));
+app.get("/", (_, res : Response) => {
+  res.redirect("/api-docs")
+})
+app.use("/api-docs",swaggerUI.serve,swaggerUI.setup(OASSpec))
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
 
@@ -33,11 +36,15 @@ app.get("/", (req : Request, res : Response) => {
 app.listen(port, () => {
     console.log("Oke dah kelar")
 })
+
+
 app.use("/auth", authRouter)
 app.use("/post", postRouter)
 app.use("/comment", commentRouter)
 
 app.use("/static",express.static(path.join(__dirname,"public")));
+
+
 
 app.post('/upload', upload.array('images',5), async (req: Request, res: Response) => {
     console.log("ok")    
@@ -67,14 +74,3 @@ app.post('/upload', upload.array('images',5), async (req: Request, res: Response
     }
   });
 
-
-/* app.post('/upload', upload.single('image'), (req : Request, res : Response) => {
-        if (!req.file) {
-          return res.status(400).send('No file uploaded.');
-        }
-        res.status(200).send('File uploaded successfully.');
-      }); */
-
-app.get("/test", (req : Request, res : Response) => {
-    res.send("OK SELAMAT")
-})

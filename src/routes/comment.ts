@@ -28,20 +28,29 @@ const verifyToken = (req : Request, res : Response, next : NextFunction) => {
     }   
     }
 
-router.get("/", verifyToken, async (req : Request, res : Response) => {
+router.get("/:id", verifyToken, async (req : Request, res : Response) => {
     try{
-        const comment = await prisma.comments.findMany({
-            select : {
-                id : true,
-                message : true,
-                created_at : true,
-            }
-        });
-
-        res.status(200).json({
-            success : true,
-            message : comment
-        })
+        if(req.params.id){
+            const comment = await prisma.comments.findMany({
+                where: {
+                    id: req.params.id
+                }
+                ,
+                select : {
+                    id : true,
+                    message : true,
+                    created_at : true,
+                    userId : true,
+                    postId : true,
+                    updated_at : true
+                }
+            });
+    
+            res.status(200).json({
+                success : true,
+                message : comment
+            })
+        }
     }catch(err){
         res.status(400).json({
             success : false,
@@ -49,6 +58,8 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
         })
     }
 })
+
+
 
 router.post("/create/:id", verifyToken, async ( req : Request, res : Response) => {
     try{
