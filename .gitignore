@@ -6,3 +6,8 @@ prisma
 ./.env
 uploads
 ./uploads
+src/public/*
+./src/public/*
+./src/public
+src/public
+/src/public

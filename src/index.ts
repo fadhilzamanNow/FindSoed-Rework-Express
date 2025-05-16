@@ -49,7 +49,7 @@ app.use("/static",express.static(path.join(__dirname,"public")));
 app.post('/upload', upload.array('images',5), async (req: Request, res: Response) => {
     console.log("ok")    
     console.log(req.files)
-    const {itemName = null} = req.body
+    console.log(req.body)
     const filesArray = (req.files as Express.Multer.File[]).map((v, i) => {
         return {
             id : i,
@@ -62,7 +62,7 @@ app.post('/upload', upload.array('images',5), async (req: Request, res: Response
             success : true,
             message : "Gambar berhasil untuk dikirim",
             data : {
-                itemName : itemName,
+                itemName : req.body.itemName,
                 files : filesArray
             }
         })

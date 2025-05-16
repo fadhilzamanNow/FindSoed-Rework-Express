@@ -40,14 +40,29 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 router.post("/create", verifyToken, upload.array("postImage",5) , async (req : Request, res : Response) => {
-    const {itemName = null, itemDetail = null, itemCategory = null, itemStatus = null, itemLatitude = null, itemLongitude = null} = req.body
+    const {itemName = null, itemDetail = null, itemCategory = null, itemStatus = null, itemLatitude = null, itemLongitude = null, locationName = null, itemLostDate = null, } = req.body
+    console.log(itemName,itemCategory,itemDetail,itemLostDate,itemStatus)
     try{
-        if(!itemName || !itemDetail || !itemCategory || !itemStatus || !itemLatitude || !itemLongitude ){
-            throw new Error("Data yang kamu masukkan kurang lengkap")
+        if(!itemName){
+            throw new Error("Nama barang yang hilang masih kosong")
         }
+        if(!itemDetail){
+            throw new Error("Deskripsi barang yang hilang masih kosong")
+        }
+        if(!itemCategory){
+            throw new Error("Kategori barang yang hilang masih kosong")
+        }
+        if(!itemLatitude){
+            throw new Error("Latitude Barang masih kosong")
+        }
+        if(!itemLongitude){
+            throw new Error("Longitude Barang masih kosong")
+        }
+
+        console.log("requirement completed")
         const statusId = await prisma.postStatus.findUnique({
             where : {
-                statusName : itemStatus
+                statusName : "Hilang"
             }
         })
     
@@ -81,6 +96,7 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
                 data : {
                     itemName : itemName,
                     itemDetail : itemDetail,
+                    itemLostDate : new Date(itemLostDate),
                     //@ts-ignore
                     userId : req.userId,
                     categoryId : categoryId.id,
@@ -90,6 +106,7 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
                     },
                     coordinate : {
                         create : {
+                            locationName : locationName,
                             latitude : Number((itemLatitude as string)),
                             longitude : Number((itemLongitude as string))
                         }
@@ -98,7 +115,11 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
             })
             res.status(200).json({
                 success : true,
-                message : "Barang Hilang telah dibuat"
+                message : "Barang Hilang telah dibuat",
+                data : {
+                    id : posts.id,
+                    name : posts.itemName
+                }
             })
         }else{
             res.status(400).json({

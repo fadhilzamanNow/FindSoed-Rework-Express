@@ -17,14 +17,6 @@ async function main(){
         {categoryName : "Lain Lain"}
       ]
     })
-
-    const insertComment = await prisma.comments.create({
-      data : {
-        message : "test",
-        postId : "7182170c-b3fa-46f5-82ba-07c329cb0b5d",
-        userId : "9efb9420-ea44-408b-bbba-42a70d7f484c"
-      }
-    })
     console.log({itemCategory, itemStatus})
 }
 

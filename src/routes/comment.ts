@@ -1,6 +1,7 @@
 import express, { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken"
 import { PrismaClient } from "../../generated/prisma";
+import {z} from "zod"
 
 
 const router = express.Router();
