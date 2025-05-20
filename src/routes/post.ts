@@ -180,6 +180,12 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
     const posts = await prisma.post.findMany({
         select : {
             id : true,
+            user : {
+                select : {
+                    username : true,
+                    profile : true
+                },
+            },
             status : {
                 select : {
                     statusName : true
@@ -194,12 +200,9 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
             updated_at : true,
             itemDetail : true,
             itemName : true,
-            image :  {
-                select : {
-                    postImageUrl : true
-                }
-            },
-            coordinate : true
+            coordinate : true,
+            comment : true,
+            image : true
         }
     });
    
@@ -207,17 +210,20 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
     const formattedPosts = posts.map((v) => {
         return {
             id : v.id,
+            userName : v.user.username,
+            userProfile : v.user.profile?.imageUrl,
             itemName : v.itemName,
             itemDetail : v.itemDetail,
             statusName : v.status.statusName,
             categoryName : v.category.categoryName,
-            images : v.image,
+            images : v.image.map((v) => v.postImageUrl),
             created_at : v.created_at,
             updated_at : v.updated_at,
             coordinate : {
                 latitude : v.coordinate?.latitude,
                 longitude : v.coordinate?.longitude
-            }
+            },
+            commentNum : v.comment.length
 
         }
     })
