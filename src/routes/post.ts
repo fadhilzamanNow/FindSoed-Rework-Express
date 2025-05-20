@@ -13,7 +13,6 @@ const verifyToken = (req : Request, res : Response, next : NextFunction) => {
     try{
         if(token){
             const decoded = jwt.verify(token, process.env.JWT_SECRET as string) 
-            console.log("hasil decoded : ", decoded);
             //@ts-ignore
             req.userId = decoded.userId
             next()
@@ -135,58 +134,67 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
     }
 })
 
-router.put("/edit/:id", verifyToken, async (req : Request, res : Response) => {
+router.patch("/edit/:id", verifyToken, async (req : Request, res : Response) => {
+    try{
     console.log("test : ", req.params.id)
-    const {itemName = null, itemCategory = null, itemStatus = null, itemDetail = null} = req.body
+    console.log(req.body)
+    const {itemStatus = null, itemDetail = null, itemLostDate = null, itemCategory = null} = req.body
     const oldPost = await prisma.post.findUnique({
         where : {
             id : req.params.id
         }
     })
-    let statusId ;
-    let categoryId ;
+    let statusId : null | number = null;
     if(itemStatus){
-         statusId = await prisma.postStatus.findUnique({
+        const findStatus = await prisma.postStatus.findFirst({
             where : {
                 statusName : itemStatus
             }
         })
-    }
-    if(itemDetail){
-         categoryId = await prisma.postCategory.findUnique({
-            where : {
-                categoryName : itemCategory
-            }
-        })
-    }
- 
-
-    if(oldPost){
-        const newPost = await prisma.post.update({
-            where : {
-                id : req.params.id
-            },
-            data : {
-                id : req.params.id,
-                itemName : itemName ? itemName : oldPost.itemName,
-                itemDetail : itemDetail ? itemDetail : oldPost.itemDetail,
-                statusId : itemStatus ? statusId?.id : oldPost.statusId,
-                categoryId : itemStatus ? categoryId?.id : oldPost.categoryId,
-                updated_at : new Date(),
-                created_at : oldPost.created_at
-            }
-        })
-        res.status(200).json({
-            success : true,
-            message : newPost
-        })
+        if(findStatus){
+            statusId = findStatus.id
+        }else{
+            console.log("find status tidak ditemukan")
+        }
     }else{
-        res.status(404).json({
-            status : false,
-            message : "Post yang ingin diedit tidak ditemukan"
-        })
+        console.log("item status tidak ditemukan")
     }
-   
+    if(oldPost){
+        console.log("testing  ")
+            const newPost = await prisma.post.update({
+                where : {
+                    id : oldPost.id
+                },
+                data : {
+                    updated_at : new Date(),
+                    itemDetail : itemDetail ? itemDetail : oldPost.itemDetail ,
+                    statusId : itemStatus ? statusId as number : oldPost.statusId, 
+                    itemLostDate : itemLostDate ? new Date(itemLostDate) : oldPost.itemLostDate
+                }
+            })
+            
+            if(newPost){
+                res.status(200).json({
+                    success : true,
+                    message : "Data berhasil untuk diperbarui",
+                    data : newPost
+                })
+            }
+       
+    }else{
+        console.log("old post tidak ditemukan")
+    }
+   res.status(200).json({
+    success : true,
+    message : "Data berhasil didapatkan"
+   })
+    }catch(e){
+        console.log("e : ", e)
+        res.status(400).json({
+            success : false,
+            message : "Data gagal untuk diubah"
+        })
+    }  
 })
 
 router.get("/", verifyToken, async (req : Request, res : Response) => {
@@ -215,6 +223,7 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
             coordinate : true
         }
     });
+   
 
     const formattedPosts = posts.map((v) => {
         return {
@@ -242,10 +251,65 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
 router.delete("/:id", verifyToken, async (req : Request, res : Response) => {
     if(req.params.id){
         try{
-            await prisma.post.delete({where : {
-                id : req.params.id
-            }})
+           /*  const findPost = await prisma.postImages.findMany({
+                where : {
+                    postId : req.params.id
+                }
+            })
+            const findCoordinates = await prisma.coordinates.findUnique({
+                where : {
+                    postId : req.params.id
+                }
+            })
+            const Comments = await prisma.comments.findMany({
+                where : {
+                    postId : req.params.id
+                }
+            })
+
+            if(findPost){
+                findPost.forEach((v) => {
+                    await prisma.post
+                })
+            } */
+
+            const deleteImages = await prisma.postImages.deleteMany({
+                where : {
+                    postId : req.params.id
+                }
+            })
+
+            const deleteComments = await prisma.comments.deleteMany({
+                where : {
+                    postId : req.params.id
+                }
+            })
+
+            const deleteCoordinates = await prisma.coordinates.deleteMany({
+                where : {
+                    postId : req.params.id
+                }
+            })
+
+            const deletePosts = await prisma.post.delete({
+                where : {
+                    id : req.params.id
+                }
+            })
+           if(deletePosts){
+                res.status(201).json({
+                    success : false,
+                    message : "Post berhasil dihapus",
+                    data : {
+                        detailPost : deletePosts,
+                        ...(deleteComments ?? {comments : deleteComments}),
+                        ...(deleteCoordinates ?? {coordinates : deleteCoordinates}),
+                        ...(deleteImages ?? {comments : deleteComments})
+                    }
+                })
+           }
         }catch(err){
+            console.log("e : ", err)
             res.status(400).json({
                 success : true,
                 message : err
@@ -260,15 +324,108 @@ router.get("/userpost", verifyToken, async (req : Request, res : Response) => {
             where : {
                 //@ts-ignore
                 userId : req.userId
+            },
+            select : {
+                id : true,
+                status : {
+                    select : {
+                        statusName : true
+                    }
+                },
+                itemName : true
             }
         })
         if(findPost){
+            const userPost = findPost.map((v) => {
+                return {
+                    postId : v.id,
+                    status : v.status.statusName,
+                    itemName : v.itemName
+                }
+            }).sort((a,b) => a.postId.localeCompare(b.postId) )
+
             res.status(200).json({
                 success : true,
                 message : "Data berhasil diperoleh",
-                data : findPost
+                data : userPost
             })
         }
+    }catch(e){
+        res.status(400).json({
+            success : false,
+            message : e
+        })
+    }
+})
+
+router.get("/userpostdetail/:id", verifyToken, async (req : Request, res : Response) => {
+    try{
+        console.log(req.params.id)
+        const findUserPostDetail = await prisma.post.findUnique({
+            where :{
+                id : req.params.id
+            }
+        })
+        if(findUserPostDetail){
+            console.log("post detail : ", findUserPostDetail)
+            const findCategory = await prisma.postCategory.findUnique({
+                where : {
+                    id : findUserPostDetail.categoryId
+                }
+            })
+            const findStatus = await prisma.postStatus.findUnique({
+                where : {
+                    id : findUserPostDetail.statusId
+                }
+            })
+
+            if(findStatus && findCategory){
+                console.log("isi status : ", findStatus)
+                console.log("isi category : ", findCategory)
+                res.status(200).json({
+                    success : true,
+                    message : "Data Post berhasil didapatkan",
+                    data : {
+                        id : findUserPostDetail.id,
+                        itemName : findUserPostDetail.itemName,
+                        itemLostDate : findUserPostDetail.itemLostDate,
+                        itemDescription : findUserPostDetail.itemDetail,
+                        itemCategory : findCategory.categoryName,
+                        itemStatus : findStatus.statusName
+                    }
+                })
+            }
+        }
+        /*if(findUserPostDetail){
+            const findCategory = await prisma.postStatus.findUnique({
+                where : {
+                    id : findUserPostDetail.categoryId
+                }
+            })
+
+            const findStatus = await prisma.postCategory.findUnique({
+                where : {
+                    id : findUserPostDetail.statusId
+                }
+            })
+            if(findStatus && findCategory){
+                res.status(200).json({
+                    success : true,
+                    message : "Data Post berhasil diperoleh",
+                    data : {
+                        id : findUserPostDetail.id,
+                        itemName : findUserPostDetail.itemName,
+                        itemLostDate : findUserPostDetail.itemLostDate,
+                        itemDescription : findUserPostDetail.itemDetail,
+                        itemCategory : findUserPostDetail.categoryId
+                    }
+                })
+            }
+        } */
+       res.status(200).json({
+            success : true,
+            message : "Sukses mengambil data"
+       })
     }catch(e){
         res.status(400).json({
             success : false,
