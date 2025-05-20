@@ -39,7 +39,6 @@ const upload = multer({ storage: storage });
 
 router.post("/create", verifyToken, upload.array("postImage",5) , async (req : Request, res : Response) => {
     const {itemName = null, itemDetail = null, itemCategory = null, itemStatus = null, itemLatitude = null, itemLongitude = null, locationName = null, itemLostDate = null, } = req.body
-    console.log(itemName,itemCategory,itemDetail,itemLostDate,itemStatus)
     try{
         if(!itemName){
             throw new Error("Nama barang yang hilang masih kosong")
@@ -57,7 +56,6 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
             throw new Error("Longitude Barang masih kosong")
         }
 
-        console.log("requirement completed")
         const statusId = await prisma.postStatus.findUnique({
             where : {
                 statusName : "Hilang"
@@ -71,7 +69,6 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
         })
         let imageArray = []
         if(req.files && (req.files.length as number) > 0){
-            console.log("Gambar berhasil diupload : ", req.files.length )
             imageArray = (req.files as Express.Multer.File[]).map((v,i) => {
                 return {
                     postImageUrl : v.filename
@@ -82,14 +79,7 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
         }
         
         if(statusId && categoryId){
-            console.log({
-                itemName,
-                itemDetail,
-                //@ts-ignore
-                userId : req.userId,
-                categoryId : categoryId.id,
-                statusId : statusId.id
-            })
+         
             const posts = await prisma.post.create({
                 data : {
                     itemName : itemName,
@@ -126,7 +116,6 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
             })
         }
     }catch(err){
-        console.log("error :", err)
         res.status(400).json({
             success : false,
             message : err
@@ -136,8 +125,6 @@ router.post("/create", verifyToken, upload.array("postImage",5) , async (req : R
 
 router.patch("/edit/:id", verifyToken, async (req : Request, res : Response) => {
     try{
-    console.log("test : ", req.params.id)
-    console.log(req.body)
     const {itemStatus = null, itemDetail = null, itemLostDate = null, itemCategory = null} = req.body
     const oldPost = await prisma.post.findUnique({
         where : {
@@ -153,14 +140,9 @@ router.patch("/edit/:id", verifyToken, async (req : Request, res : Response) => 
         })
         if(findStatus){
             statusId = findStatus.id
-        }else{
-            console.log("find status tidak ditemukan")
         }
-    }else{
-        console.log("item status tidak ditemukan")
     }
     if(oldPost){
-        console.log("testing  ")
             const newPost = await prisma.post.update({
                 where : {
                     id : oldPost.id
@@ -181,15 +163,12 @@ router.patch("/edit/:id", verifyToken, async (req : Request, res : Response) => 
                 })
             }
        
-    }else{
-        console.log("old post tidak ditemukan")
     }
    res.status(200).json({
     success : true,
     message : "Data berhasil didapatkan"
    })
     }catch(e){
-        console.log("e : ", e)
         res.status(400).json({
             success : false,
             message : "Data gagal untuk diubah"
@@ -251,28 +230,6 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
 router.delete("/:id", verifyToken, async (req : Request, res : Response) => {
     if(req.params.id){
         try{
-           /*  const findPost = await prisma.postImages.findMany({
-                where : {
-                    postId : req.params.id
-                }
-            })
-            const findCoordinates = await prisma.coordinates.findUnique({
-                where : {
-                    postId : req.params.id
-                }
-            })
-            const Comments = await prisma.comments.findMany({
-                where : {
-                    postId : req.params.id
-                }
-            })
-
-            if(findPost){
-                findPost.forEach((v) => {
-                    await prisma.post
-                })
-            } */
-
             const deleteImages = await prisma.postImages.deleteMany({
                 where : {
                     postId : req.params.id
@@ -309,7 +266,6 @@ router.delete("/:id", verifyToken, async (req : Request, res : Response) => {
                 })
            }
         }catch(err){
-            console.log("e : ", err)
             res.status(400).json({
                 success : true,
                 message : err
@@ -360,14 +316,12 @@ router.get("/userpost", verifyToken, async (req : Request, res : Response) => {
 
 router.get("/userpostdetail/:id", verifyToken, async (req : Request, res : Response) => {
     try{
-        console.log(req.params.id)
         const findUserPostDetail = await prisma.post.findUnique({
             where :{
                 id : req.params.id
             }
         })
         if(findUserPostDetail){
-            console.log("post detail : ", findUserPostDetail)
             const findCategory = await prisma.postCategory.findUnique({
                 where : {
                     id : findUserPostDetail.categoryId
@@ -380,8 +334,6 @@ router.get("/userpostdetail/:id", verifyToken, async (req : Request, res : Respo
             })
 
             if(findStatus && findCategory){
-                console.log("isi status : ", findStatus)
-                console.log("isi category : ", findCategory)
                 res.status(200).json({
                     success : true,
                     message : "Data Post berhasil didapatkan",
