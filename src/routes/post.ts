@@ -4,6 +4,10 @@ import "dotenv/config"
 import { PrismaClient } from "../../generated/prisma";
 import multer from "multer";
 import path from "path";
+import dayjs from "dayjs";
+import localizedFormat from "dayjs/plugin/localizedFormat"
+
+dayjs.extend(localizedFormat)
 
 const router = express.Router();
 const prisma = new PrismaClient()
@@ -176,6 +180,78 @@ router.patch("/edit/:id", verifyToken, async (req : Request, res : Response) => 
     }  
 })
 
+router.get("/detail/:id", verifyToken, async (req : Request, res : Response) => {
+    try{
+        const findDetailPost = await prisma.post.findFirst({
+            where : {
+                id : req.params.id
+            },
+            select : {
+                id : true,
+                user : {
+                    select : {
+                        username : true,
+                        profile : true,
+                        phoneNumber : true
+                    },
+                },
+                status : {
+                    select : {
+                        statusName : true
+                    }
+                },
+                category : {
+                    select : {
+                        categoryName : true
+                    }
+                },
+                created_at : true,
+                updated_at : true,
+                itemDetail : true,
+                itemName : true,
+                coordinate : true,
+                comment : true,
+                image : true,
+                itemLostDate : true
+            }
+        }) 
+        if(findDetailPost){
+            const formattedPosts = {
+                    id : findDetailPost.id,
+                    userName : findDetailPost.user.username,
+                    userProfile : findDetailPost.user.profile?.imageUrl,
+                    itemName : findDetailPost.itemName,
+                    itemDetail : findDetailPost.itemDetail,
+                    statusName : findDetailPost.status.statusName,
+                    itemCategory : findDetailPost.category.categoryName,
+                    images : findDetailPost.image.map((v) => v.postImageUrl),
+                    created_at : findDetailPost.created_at,
+                    updated_at : findDetailPost.updated_at,
+                    coordinate : {
+                        latitude : findDetailPost.coordinate?.latitude,
+                        longitude : findDetailPost.coordinate?.longitude
+                    },
+                    commentNum : findDetailPost.comment.length,
+                    itemLostDate : dayjs(findDetailPost.itemLostDate,"YYYY-MM-DD").format("LLL"),
+                    phoneNumber : findDetailPost.user.phoneNumber
+        
+                }
+                if(formattedPosts){
+                    res.status(200).json({
+                        success : true,
+                        message : "Berhasil mendapatkan detail Post",
+                        data : formattedPosts
+                    })
+                }
+            }            
+        }catch(e){
+            res.status(400).json({
+                success : false,
+                message : "Gagal mendapatkan detail Post"
+            })
+        }
+})
+
 router.get("/", verifyToken, async (req : Request, res : Response) => {
     const posts = await prisma.post.findMany({
         select : {
@@ -232,6 +308,76 @@ router.get("/", verifyToken, async (req : Request, res : Response) => {
         data : formattedPosts
     })
 })
+
+router.get("/:searchitem", async (req : Request, res : Response) => {
+    try{
+        const findPosts = await prisma.post.findMany({
+            where : {
+                itemName : {
+                    contains : req.params.searchitem,
+                    mode : "insensitive"
+                }
+            },
+            select : {
+                id : true,
+                user : {
+                    select : {
+                        username : true,
+                        profile : true
+                    },
+                },
+                status : {
+                    select : {
+                        statusName : true
+                    }
+                },
+                category : {
+                    select : {
+                        categoryName : true
+                    }
+                },
+                created_at : true,
+                updated_at : true,
+                itemDetail : true,
+                itemName : true,
+                coordinate : true,
+                comment : true,
+                image : true
+            }
+        })
+
+        const formattedPosts = findPosts.map((v) => {
+            return {
+                id : v.id,
+                userName : v.user.username,
+                userProfile : v.user.profile?.imageUrl,
+                itemName : v.itemName,
+                itemDetail : v.itemDetail,
+                statusName : v.status.statusName,
+                categoryName : v.category.categoryName,
+                images : v.image.map((v) => v.postImageUrl),
+                created_at : v.created_at,
+                updated_at : v.updated_at,
+                coordinate : {
+                    latitude : v.coordinate?.latitude,
+                    longitude : v.coordinate?.longitude
+                },
+                commentNum : v.comment.length
+    
+            }
+        })
+        res.status(200).json({
+            success : true,
+            data : formattedPosts
+        })
+    }catch(e){
+        res.status(200).json({
+            success : true,
+            message : "Gagal untuk mencari post"
+        })
+    }
+})
+
 
 router.delete("/:id", verifyToken, async (req : Request, res : Response) => {
     if(req.params.id){

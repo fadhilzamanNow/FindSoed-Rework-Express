@@ -2,10 +2,13 @@ import express, { NextFunction, Request, Response } from "express";
 import jwt from "jsonwebtoken"
 import { PrismaClient } from "../../generated/prisma";
 import {z} from "zod"
+import dayjs from "dayjs";
+import localizedFormat from "dayjs/plugin/localizedFormat"
 
 
 const router = express.Router();
 const prisma = new PrismaClient()
+dayjs.extend(localizedFormat)
 
 const verifyToken = (req : Request, res : Response, next : NextFunction) => {
     const token = req.headers.authorization?.split(" ")[1] 
@@ -32,9 +35,9 @@ const verifyToken = (req : Request, res : Response, next : NextFunction) => {
 router.get("/:id", verifyToken, async (req : Request, res : Response) => {
     try{
         if(req.params.id){
-            const comment = await prisma.comments.findMany({
+            const findComment = await prisma.comments.findMany({
                 where: {
-                    id: req.params.id
+                    postId: req.params.id
                 }
                 ,
                 select : {
@@ -43,14 +46,40 @@ router.get("/:id", verifyToken, async (req : Request, res : Response) => {
                     created_at : true,
                     userId : true,
                     postId : true,
-                    updated_at : true
-                }
+                    updated_at : true,
+                    user : {
+                        select : {
+                            username : true,
+                            profile : {
+                                select : {
+                                    imageUrl : true
+                                }
+                            }
+                        }
+                    }
+                },
+                orderBy: {
+                    created_at: "asc"
+                  },
             });
-    
-            res.status(200).json({
-                success : true,
-                message : comment
-            })
+
+            if(findComment){
+                const dateFormatted = "YYYY-MM-DD"
+                const formattedComment = findComment.map((v) => {
+                    return {
+                        userName : v.user.username,
+                        userProfile : v.user.profile?.imageUrl,
+                        message : v.message,
+                        created_at : dayjs(v.created_at,"YYYY-MM-DD").format("lll")
+                    }
+
+                })
+                res.status(200).json({
+                    success : true,
+                    message : "Berhasil mendapatkan komen dari post",
+                    data : formattedComment
+                })
+            }
         }
     }catch(err){
         res.status(400).json({
@@ -81,8 +110,6 @@ router.post("/create/:id", verifyToken, async ( req : Request, res : Response) =
                 success : true,
                 message : comments
             })
-        }else{
-            throw new Error("Comment belum dimasukkan")
         }
 
     
