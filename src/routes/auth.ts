@@ -19,7 +19,6 @@ const verifyToken = (req: Request, res: Response, next: NextFunction) => {
   try {
     if (token) {
       const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
-      console.log("hasil decoded : ", decoded);
       //@ts-ignore
       req.userId = decoded.userId;
       next();
@@ -170,11 +169,10 @@ router.post("/login", async (req: Request, res: Response) => {
 router.get(
   "/find",
   verifyToken,
-  upload.single("profilePhoto"),
   async (req: Request, res: Response) => {
     try {
       //@ts-ignore
-      console.log("id : ", req.userId);
+      console.log("id here: ", req.userId);
       const findUser = await prisma.user.findUnique({
         where: {
           //@ts-ignore
@@ -187,20 +185,22 @@ router.get(
           where: {
             userId: findUser.id,
           },
+
+        
         });
-        if (findProfile) {
-          res.status(200).json({
-            success: true,
-            message: "Berhasil mendapat informasi pengguna",
-            data: {
-              userId: findUser?.id,
-              username: findUser?.username,
-              email: findUser?.email,
-              phoneNumber: findUser?.phoneNumber,
-              imageUrl: findProfile.imageUrl,
-            },
-          });
-        }
+
+        res.status(200).json({
+          success: true,
+          message: "Berhasil mendapat informasi pengguna",
+          data: {
+            userId: findUser?.id,
+            username: findUser?.username,
+            email: findUser?.email,
+            phoneNumber: findUser?.phoneNumber,
+            imageUrl: findProfile?.imageUrl ? findProfile?.imageUrl : null,
+          },
+        });
+        
       }
     } catch (err) {
       res.status(404).json({

@@ -41,6 +41,49 @@ const storage = multer.diskStorage({
     
 const upload = multer({ storage: storage });
 
+router.get("/userpost", verifyToken, async (req : Request, res : Response) => {
+    try{
+        //@ts-ignore
+        console.log("isi userId userpost: ", req.userId)
+        const findPost = await prisma.post.findMany({
+            where : {
+                //@ts-ignore
+                userId : req.userId
+            },
+            select : {
+                id : true,
+                status : {
+                    select : {
+                        statusName : true
+                    }
+                },
+                itemName : true
+            }
+        })
+        if(findPost){
+            const userPost = findPost.map((v) => {
+                return {
+                    postId : v.id,
+                    status : v.status.statusName,
+                    itemName : v.itemName
+                }
+            }).sort((a,b) => a.postId.localeCompare(b.postId) )
+
+            res.status(200).json({
+                success : true,
+                message : "Data berhasil diperoleh",
+                data : userPost
+            })
+        }
+    }catch(e){
+        res.status(400).json({
+            success : false,
+            message : e
+        })
+    }
+})
+
+
 router.post("/create", verifyToken, upload.array("postImage",5) , async (req : Request, res : Response) => {
     const {itemName = null, itemDetail = null, itemCategory = null, itemStatus = null, itemLatitude = null, itemLongitude = null, locationName = null, itemLostDate = null, } = req.body
     try{
@@ -426,45 +469,6 @@ router.delete("/:id", verifyToken, async (req : Request, res : Response) => {
     }
 })
 
-router.get("/userpost", verifyToken, async (req : Request, res : Response) => {
-    try{
-        const findPost = await prisma.post.findMany({
-            where : {
-                //@ts-ignore
-                userId : req.userId
-            },
-            select : {
-                id : true,
-                status : {
-                    select : {
-                        statusName : true
-                    }
-                },
-                itemName : true
-            }
-        })
-        if(findPost){
-            const userPost = findPost.map((v) => {
-                return {
-                    postId : v.id,
-                    status : v.status.statusName,
-                    itemName : v.itemName
-                }
-            }).sort((a,b) => a.postId.localeCompare(b.postId) )
-
-            res.status(200).json({
-                success : true,
-                message : "Data berhasil diperoleh",
-                data : userPost
-            })
-        }
-    }catch(e){
-        res.status(400).json({
-            success : false,
-            message : e
-        })
-    }
-})
 
 router.get("/userpostdetail/:id", verifyToken, async (req : Request, res : Response) => {
     try{

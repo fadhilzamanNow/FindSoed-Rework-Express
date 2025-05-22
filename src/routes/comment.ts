@@ -68,7 +68,7 @@ router.get("/:id", verifyToken, async (req : Request, res : Response) => {
                 const formattedComment = findComment.map((v) => {
                     return {
                         userName : v.user.username,
-                        userProfile : v.user.profile?.imageUrl,
+                        userProfile : v.user.profile?.imageUrl ? v.user.profile.imageUrl : null,
                         message : v.message,
                         created_at : dayjs(v.created_at,"YYYY-MM-DD").format("lll")
                     }
