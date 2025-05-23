@@ -16,6 +16,7 @@
   "dependencies": {
     "@prisma/client": "^6.7.0",
     "@prisma/migrate": "^6.6.0",
+    "@types/cors": "^2.8.18",
     "@types/express": "^5.0.1",
     "@types/jsonwebtoken": "^9.0.9",
     "@types/multer": "^1.4.12",
@@ -25,6 +26,8 @@
     "@types/yamljs": "^0.2.34",
     "bcrypt": "^5.1.1",
     "bcryptjs": "^3.0.2",
+    "cors": "^2.8.5",
+    "dayjs": "^1.11.13",
     "dotenv": "^16.5.0",
     "express": "^5.1.0",
     "express-fileupload": "^1.5.1",

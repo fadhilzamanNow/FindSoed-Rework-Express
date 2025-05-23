@@ -6,13 +6,14 @@ import YAML from "yamljs"
 import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/post";
 import { commentRouter } from "./routes/comment";
-
+import cors from "cors"
 const app = express();
 const port = 3500;
 const OASSpec = YAML.load(path.join(__dirname,"openapi.yaml"));
 app.get("/", (_, res : Response) => {
   res.redirect("/api-docs")
 })
+
 app.use("/api-docs",swaggerUI.serve,swaggerUI.setup(OASSpec))
 app.use(express.json())
 app.use(express.urlencoded({extended : true}))
@@ -37,6 +38,7 @@ app.listen(port, () => {
     console.log("Oke dah kelar")
 })
 
+app.use(cors())
 
 app.use("/auth", authRouter)
 app.use("/post", postRouter)
