@@ -92,7 +92,7 @@ router.post("/register", async (req: Request, res: Response) => {
         username: req.body.username,
         email: req.body.email,
         password: req.body.password,
-        phoneNumber: req.body.phoneNumber,
+        ...(phoneNumber && {phoneNumber : phoneNumber}),
       },
     });
 
@@ -110,14 +110,14 @@ router.post("/register", async (req: Request, res: Response) => {
 router.post("/login", async (req: Request, res: Response) => {
   const { email = null, password = null } = req.body;
   if (!email) {
-    res.status(400).json({
+    res.status(404).json({
       success: false,
       message: "Email tidak disertakan",
     });
   }
 
   if (!password) {
-    res.status(400).json({
+    res.status(404).json({
       success: false,
       message: "Password tidak disertakan",
     });

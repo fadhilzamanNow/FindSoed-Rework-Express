@@ -7,6 +7,7 @@ import { authRouter } from "./routes/auth";
 import { postRouter } from "./routes/post";
 import { commentRouter } from "./routes/comment";
 import cors from "cors"
+import { locationRouter } from "./routes/location";
 const app = express();
 const port = 3500;
 const OASSpec = YAML.load(path.join(__dirname,"openapi.yaml"));
@@ -43,6 +44,7 @@ app.use(cors())
 app.use("/auth", authRouter)
 app.use("/post", postRouter)
 app.use("/comment", commentRouter)
+app.use("/location", locationRouter)
 
 app.use("/static",express.static(path.join(__dirname,"public")));
 
