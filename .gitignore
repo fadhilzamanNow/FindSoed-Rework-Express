@@ -1,7 +1,7 @@
 node_modules
 ./node_modules
-prisma
-./prisma
+#prisma
+#./prisma
 .env
 ./.env
 uploads
